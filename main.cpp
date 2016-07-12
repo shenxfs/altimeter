@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
     MainWindow w;
-    w.setFixedSize(407,300);
+    w.setFixedSize(690,510);
     w.show();
 
     return a.exec();

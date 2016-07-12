@@ -15,8 +15,6 @@ MainWindow::MainWindow(QWidget *parent) :
     settings = new SettingsDialog;
     serial = new QSerialPort(this);
     status = new QLabel;
-    clk = new QTimer;
-    clk->start(1000);
     ui->statusBar->addWidget(status);
     ui->actionConnect->setEnabled(true);
     ui->actionDisconnect->setEnabled(false);
@@ -29,16 +27,18 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionDisconnect, SIGNAL(triggered()), this, SLOT(close_serial()));
     connect(ui->actionAbout, SIGNAL(triggered()), this, SLOT(about()));
     connect(serial, SIGNAL(readyRead()), this, SLOT(readData()));
-    connect(clk, SIGNAL(timeout()), this, SLOT(clkout()));
     received = false;
+    echodata =false;
     cycle =0;
-    cnt  =0;
     st.tv_sec = 0;
     st.tv_usec = 0;
     ed.tv_sec = 0;
     ed.tv_usec = 0;
-    qDebug()<<"size of struct framedata= "<<sizeof(struct framedata);
-}
+    frmSTA = 0U;
+    frmSize =0U;
+    frmChksum = 0U;
+    showStatusMessage(tr("未连接"));   
+ }
 MainWindow::~MainWindow()
 {
     delete ui;
@@ -137,7 +137,8 @@ void MainWindow::open_serial()
 
         showStatusMessage(tr("串口打开错误"));
     }
-
+    echodata = true;
+    ui->textEdit->setText("");
 }
 
 void MainWindow::close_serial()
@@ -150,8 +151,7 @@ void MainWindow::close_serial()
     showStatusMessage(tr("已断开"));
     received = false;
     cycle = 0;
-    rect_queue.clear();
-    cycque.clear();
+    echodata =false;
 }
 
 void MainWindow::about()
@@ -171,48 +171,149 @@ void MainWindow::showStatusMessage(const QString &message)
 void MainWindow::readData()
 {
     QByteArray data = serial->readAll();
-    cnt++;
-    if(data.size()==11 )
+    quint8 i,ch;
+    for(i=0;i<data.size();i++)
     {
-        rect_queue.push_back(data);
-        if(!received)
+        ch = (quint8)data.at(i);
+//        qDebug()<<hex<<"STA="<<frmSTA<<",DATA"<<ch;
+        if(0==frmSTA)
         {
-            gettimeofday(&st,NULL);
-            received = true;
+            if(0xAAU==ch)
+            {
+                frmdata[0] = ch;
+                frmChksum += ch;
+                if(!received)
+                {
+                    gettimeofday(&st,NULL);
+                    received = true;
+                }
+                else
+                {
+                    gettimeofday(&ed,NULL);
+                    cycle =(ed.tv_sec-st.tv_sec)*1000000L+(ed.tv_usec-st.tv_usec);
+                    st.tv_sec = ed.tv_sec;
+                    st.tv_usec = ed.tv_usec;
+                }
+                frmSTA = 1U;
+            }
+            else
+            {
+                frmSTA = 0;
+                frmChksum = 0;
+            }
+        }
+        else if(1U == frmSTA)
+        {
+            if(0x55U == ch)
+            {
+                frmdata[1] = ch;
+                frmChksum += ch;
+                frmSTA = 2U;
+            }
+            else
+            {
+                frmSTA = 0;
+                frmChksum = 0;
+            }
+        }
+        else if(2U == frmSTA)
+        {
+            if(0x0BU == ch)
+            {
+                frmdata[2] = ch;
+                frmChksum += ch;
+                frmSTA = 3U;
+            }
+            else
+            {
+                frmSTA = 0;
+                frmChksum = 0;
+            }
+        }
+        else if(3U == frmSTA)
+        {
+            if(0xC0U == ch)
+            {
+                frmdata[3] = ch;
+                frmChksum += ch;
+                frmSTA = 4U;
+            }
+            else
+            {
+                frmSTA = 0;
+                frmChksum = 0;
+            }
+        }
+        else if(4U == frmSTA)
+        {
+            frmdata[frmSize+4] = ch;
+            frmChksum += ch;
+            frmSize++;
+            if(frmSize>=6U)
+            {
+                frmSTA = 5U;
+                frmSize = 0;
+            }
+        }
+        else if(5U == frmSTA)
+        {
+            frmChksum += ch;
+            if(0 == frmChksum)
+            {
+                frmdata[10] = ch;
+                QString strOne="";
+                QString str;
+                for(quint8 j=0;j<11;j++)
+                {
+                    str.sprintf("%02X ",(quint8)frmdata[j]);
+                    strOne +=str;
+                }
+                ui->textEdit->append(strOne);
+                quint16 high=0;
+                high = (quint16)frmdata[6]*256U+(quint8)frmdata[5];
+                str.sprintf("%5d",(qint16)high);
+                ui->lineEdit_high1->setText(str);
+                high =(quint16)frmdata[8]*256U+(quint8)frmdata[7];
+                str.sprintf("%5d",(qint16)high);
+                ui->lineEdit_high2->setText(str);
+                if(echodata)
+                {
+                    str.sprintf("%02X",(quint8)frmdata[4]);
+                    ui->lineEdit_4->setText(str);
+                    str.sprintf(("%5.2fms"),cycle/1000.0);
+                    ui->lineEdit_5->setText(str);
+                }
+            }
+            frmSTA =0;
+            frmChksum = 0;
         }
         else
         {
-            gettimeofday(&ed,NULL);
-            cycle =(ed.tv_sec-st.tv_sec)*1000000L+(ed.tv_usec-st.tv_usec);
-            cycque.push_back(cycle);
-            st.tv_sec = ed.tv_sec;
-            st.tv_usec = ed.tv_usec;
+            frmSTA = 0;
+            frmChksum = 0;
         }
-     qDebug()<<cycle/1000.0<<"ms,"<<cnt<<","<<data.size()<<","<<(quint8)data.at(9);
     }
 }
 
-void MainWindow::clkout()
+
+
+
+void MainWindow::on_lineEdit_high1_textChanged(const QString &arg1)
 {
-   QByteArray data;
-   qint64 sum;
-   qint32 num;
-   if(received)
-   {
-       sum = 0;
-        num = rect_queue.size();
-        for(qint32 i = 0;i<num;i++)
-        {
-            data = rect_queue.first();
-            rect_queue.pop_front();
-    //         qDebug()<<rect_queue.size()<<","<<(quint8)data[0]<<","<<(quint8)data[1];
-        }
-        num = cycque.size();
-        for(qint32 i = 0;i<num;i++)
-        {
-            sum += cycque.first();
-            cycque.pop_front();
-        }
-        qDebug()<<(float)sum/num/1000.0<<"ms";
-   }
+    double ps;
+    QString str;
+    ps=arg1.toDouble();
+    ps = get_ps(ps);
+    str.sprintf("%7.3f",ps) ;
+    ui->lineEdit_2->setText(str);
+}
+
+void MainWindow::on_lineEdit_high2_textChanged(const QString &arg1)
+{
+    double ps;
+    QString str;
+    ps=arg1.toDouble();
+    ps = get_ps(ps);
+    str.sprintf("%7.3f",ps) ;
+    ui->lineEdit_3->setText(str);
 }
