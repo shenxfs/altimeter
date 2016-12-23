@@ -5,7 +5,7 @@
 #-------------------------------------------------
 
 QT       += core gui
-
+RC_ICONS += Altimeter.ico
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 QT += serialport
 TARGET = altimeter
