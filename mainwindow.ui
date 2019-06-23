@@ -59,6 +59,10 @@
   <property name="windowTitle">
    <string>TC300P高度传感器检测程序V1.0.0</string>
   </property>
+  <property name="windowIcon">
+   <iconset resource="altimeter.qrc">
+    <normaloff>:/altimeter.ico</normaloff>:/altimeter.ico</iconset>
+  </property>
   <widget class="QWidget" name="centralWidget">
    <property name="sizePolicy">
     <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -455,7 +459,7 @@
      <x>0</x>
      <y>0</y>
      <width>690</width>
-     <height>21</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu">

@@ -5,7 +5,8 @@
 #-------------------------------------------------
 
 QT       += core gui
-RC_ICONS += Altimeter.ico
+RC_ICONS += altimeter.ico
+RC_FILE = app.rc
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 QT += serialport
 TARGET = altimeter
@@ -24,3 +25,6 @@ FORMS    += mainwindow.ui \
 
 RESOURCES += \
     altimeter.qrc
+
+DISTFILES += \
+    app.rc
