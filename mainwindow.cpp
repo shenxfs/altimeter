@@ -59,7 +59,7 @@ void MainWindow::on_lineEdit_textChanged(const QString &arg1)
     QString str;
     ps=arg1.toDouble();
     ps = get_altu(ps);
-    str.sprintf("%5d",(int)ps) ;
+    str.sprintf("%5d",static_cast<int>(ps)) ;
     ui->highEdit->setText(str);
 }
 double MainWindow::get_altu(double ps)
@@ -156,8 +156,8 @@ void MainWindow::close_serial()
 
 void MainWindow::about()
 {
-    QMessageBox::about(this, tr("关于高度传感器显示程序V1.0.0"),
-                       tr("高度传感器显示程序基于Qt5.5.1开发，将海拔高度(m)转换为压力(kPa)并显示，"
+    QMessageBox::about(this, tr("关于高度传感器显示程序V1.1.0"),
+                       tr("高度传感器显示程序基于Qt5.12.3开发，将海拔高度(m)转换为压力(kPa)并显示，"
                           "通过接收高度传感器串行信号，显示高度传感器2路海拔高度结果，并与给定的海拔高度进行"
                           "比较作出是否符合要求的结论，检测高度传感器串行信号的更新率和完整性。"));
 
@@ -174,7 +174,7 @@ void MainWindow::readData()
     quint8 i,ch;
     for(i=0;i<data.size();i++)
     {
-        ch = (quint8)data.at(i);
+        ch = static_cast<quint8>(data.at(i));
 //        qDebug()<<hex<<"STA="<<frmSTA<<",DATA"<<ch;
         if(0==frmSTA)
         {
@@ -184,13 +184,13 @@ void MainWindow::readData()
                 frmChksum += ch;
                 if(!received)
                 {
-                    gettimeofday(&st,NULL);
+                    gettimeofday(&st,nullptr);
                     received = true;
                 }
                 else
                 {
-                    gettimeofday(&ed,NULL);
-                    cycle =(ed.tv_sec-st.tv_sec)*1000000L+(ed.tv_usec-st.tv_usec);
+                    gettimeofday(&ed,nullptr);
+                    cycle =static_cast<qint32>(ed.tv_sec-st.tv_sec)*1000000L+(ed.tv_usec-st.tv_usec);
                     st.tv_sec = ed.tv_sec;
                     st.tv_usec = ed.tv_usec;
                 }
@@ -265,20 +265,20 @@ void MainWindow::readData()
                 QString str;
                 for(quint8 j=0;j<11;j++)
                 {
-                    str.sprintf("%02X ",(quint8)frmdata[j]);
+                    str.sprintf("%02X ",static_cast<quint8>(frmdata[j]));
                     strOne +=str;
                 }
                 ui->textEdit->append(strOne);
                 quint16 high=0;
-                high = (quint16)frmdata[6]*256U+(quint8)frmdata[5];
-                str.sprintf("%5d",(qint16)high);
+                high = static_cast<quint16>(frmdata[6])*256U+static_cast<quint8>(frmdata[5]);
+                str.sprintf("%5d",static_cast<qint16>(high));
                 ui->lineEdit_high1->setText(str);
-                high =(quint16)frmdata[8]*256U+(quint8)frmdata[7];
-                str.sprintf("%5d",(qint16)high);
+                high =static_cast<quint16>(frmdata[8])*256U+static_cast<quint8>(frmdata[7]);
+                str.sprintf("%5d",static_cast<qint16>(high));
                 ui->lineEdit_high2->setText(str);
                 if(echodata)
                 {
-                    str.sprintf("%02X",(quint8)frmdata[4]);
+                    str.sprintf("%02X",static_cast<quint8>(frmdata[4]));
                     ui->lineEdit_4->setText(str);
                     str.sprintf(("%5.2fms"),cycle/1000.0);
                     ui->lineEdit_5->setText(str);
@@ -303,7 +303,7 @@ void MainWindow::on_lineEdit_high1_textChanged(const QString &arg1)
     double ps;
     QString str;
     ps=arg1.toDouble();
-    ps = get_ps(ps);
+    ps = get_ps(static_cast<int>(ps));
     str.sprintf("%7.3f",ps) ;
     ui->lineEdit_2->setText(str);
 }
@@ -313,7 +313,7 @@ void MainWindow::on_lineEdit_high2_textChanged(const QString &arg1)
     double ps;
     QString str;
     ps=arg1.toDouble();
-    ps = get_ps(ps);
+    ps = get_ps(static_cast<int>(ps));
     str.sprintf("%7.3f",ps) ;
     ui->lineEdit_3->setText(str);
 }
