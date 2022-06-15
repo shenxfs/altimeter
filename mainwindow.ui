@@ -84,7 +84,7 @@
    </palette>
   </property>
   <property name="windowTitle">
-   <string>TC300P高度传感器检测程序V1.1.0</string>
+   <string>TC300P高度传感器检测程序V2.0.0</string>
   </property>
   <property name="windowIcon">
    <iconset resource="altimeter.qrc">
